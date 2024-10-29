@@ -150,7 +150,7 @@ class MapCoder(BaseStrategy):
     @staticmethod
     def replace_tag(text: str, tag: str):
         if f'<{tag}><![CDATA[' in text and f']]></{tag}>' in text:
-            return text 
+            return text
         else:
             return text.replace(f'<{tag}>', f'<{tag}><![CDATA[').replace(f'</{tag}>', f']]></{tag}>').strip()
 
@@ -164,12 +164,60 @@ class MapCoder(BaseStrategy):
         return sample_io
 
     def run_single_pass(self, item: dict):
-        print("", flush=True)
+        # GPT Call #1: Get knowledge base and exemplars
+        # This call gets relevant problems and algorithm tutorial
+        response, pr_tok, com_tok = self._get_kb_and_exemplars(item)
+        response = self._process_kb_response(response)
+        
+        # Prepare prompts for subsequent calls
+        algorithm_prompt = f"## Relevant Algorithm to solve the next problem:\n{response['algorithm']}"
+        sample_io_prompt = f"## Sample Test cases: \n{self.get_sample_io_str(item['sample_io'])}\n"
+        
+        # Process each example problem
+        plannings = []
+        for example_no, example in enumerate(response["problem"], start=1):
+            # GPT Call #2: Generate planning based on example
+            planning, pr_tok_1, com_tok_1 = self._get_planning(
+                example["description"],
+                example["planning"],
+                algorithm_prompt,
+                item,
+                sample_io_prompt
+            )
+            # GPT Call #3: Verify if planning is suitable
+            verification_res, pr_tok_2, com_tok_2 = self._verify_planning(item, planning)
+            verification_res = self._process_verification_response(verification_res)
+            confidence = verification_res['confidence']
+            plannings.append((planning, confidence))
+            pr_tok += pr_tok_1 + pr_tok_2
+            com_tok += com_tok_1 + com_tok_2
 
-        input_kb_exemplars = [
-            {
-                "role": "user",
-                "content": f"""Given a problem, provide relevant problems then identify the algorithm behind it and also explain the tutorial of the algorithm.
+        plannings.sort(key=lambda x: x[1], reverse=True)
+        
+        # GPT Call #4: Generate initial code for each planning
+        for planning, confidence in plannings:
+            code, pr_tok_1, com_tok_1 = self._generate_code(
+                item, planning, algorithm_prompt, sample_io_prompt
+            )
+            
+            # GPT Call #5: (Optional) Improve code up to self.t times if tests fail
+            improved_code, pr_tok_2, com_tok_2 = self._try_improve_code(
+                item, planning, code, algorithm_prompt
+            )
+            
+            pr_tok += pr_tok_1 + pr_tok_2
+            com_tok += com_tok_1 + com_tok_2
+            
+            if improved_code is not None:
+                return improved_code, pr_tok, com_tok
+        
+        # Return the last attempted code if none passed
+        return code, pr_tok, com_tok
+
+    def _get_kb_and_exemplars(self, item: dict):
+        input_kb_exemplars = [{
+            "role": "user",
+            "content": f"""Given a problem, provide relevant problems then identify the algorithm behind it and also explain the tutorial of the algorithm.
 # Problem:
 {self.data.get_prompt(item)}
 
@@ -206,192 +254,132 @@ Your response must follow the following xml format-
 # Write a useful tutorial about the above mentioned algorithms. Provide a high level generic tutorial for solving this types of problem. Do not generate code.
 </algorithm>
 </root>
-""",
-            },
-        ]
-
-        print("\n\n________________________")
-        print("Input for knowledge base and exemplars: ")
-        print(input_kb_exemplars[0]['content'], flush=True)
-
-        response, pr_tok, com_tok = self.gpt_chat(
-            processed_input=input_kb_exemplars
-        )
+"""
+        }]
+        
+        response, pr_tok, com_tok = self.gpt_chat(processed_input=input_kb_exemplars)
         item['api_calls'] = item.get('api_calls', 0) + 1
+        return response, pr_tok, com_tok
 
-        # Post processing
-        response = self.trim_text(
-            response, "# Identify the algorithm (Brute-force, Dynamic Programming, Divide-and-conquer, Greedy, Backtracking, Recursive, Binary search, and so on) that needs to be used to solve the original problem.")
-        response = self.trim_text(
-            response, "# Write a useful tutorial about the above mentioned algorithms. Provide a high level generic tutorial for solving this types of problem. Do not generate code.")
-        response = self.trim_text(
-            response, "# Planning to solve this problem:")
-        response = self.trim_text(
-            response, f"# Let's think step by step to solve this problem in {self.language} programming language.")
+    def _get_planning(self, example_problem: str, example_planning: str, algorithm_prompt: str, item: dict, sample_io_prompt: str):
+        input_for_problem_planning = [{
+            "role": "user",
+            "content": f"Given a competitive programming problem generate a concrete planning to solve the problem.\n# Problem:\n{example_problem}\n# Planning:\n{example_planning}\n{algorithm_prompt}\n## Problem to be solved:\n{self.data.get_prompt(item)}\n{sample_io_prompt}\n## Planning:\n\n----------------\nImportant: You should give only the planning to solve the problem. Do not add extra explanation or words."
+        }]
+        
+        planning, pr_tok, com_tok = self.gpt_chat(input_for_problem_planning)
+        item['api_calls'] += 1
+        return planning, pr_tok, com_tok
+
+    def _verify_planning(self, item: dict, planning: str):
+        input_for_planning_verification = [{
+            "role": "user",
+            "content": f"Given a competitive programming problem and a plan to solve the problem in {self.language}, tell whether the plan is correct to solve this problem.\n\n# Problem:\n{self.data.get_prompt(item)}\n# Planning:\n{planning}\n\n----------------\nImportant: Your response must follow the following xml format-```\n<root>\n<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>\n<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>\n</root>\n```"
+        }]
+        
+        verification_res, pr_tok, com_tok = self.gpt_chat(input_for_planning_verification)
+        item['api_calls'] += 1
+        return verification_res, pr_tok, com_tok
+
+    def _generate_code(self, item: dict, planning: str, algorithm_prompt: str, sample_io_prompt: str):
+        std_input_prompt = self._get_std_input_prompt()
+        
+        input_for_final_code_generation = [{
+            "role": "user",
+            "content": f"Given a competitive programming problem generate {self.language} code to solve the problem.\n{algorithm_prompt}\n## Problem to be solved:\n{self.data.get_prompt(item)}\n## Planning:\n{planning}\n{sample_io_prompt}\n## Let's think step by step.\n\n----------------\nImportant:\n{std_input_prompt}\n## Your response must contain only the {self.language} code to solve this problem. Do not add extra explanation or words."
+        }]
+        
+        code, pr_tok, com_tok = self.gpt_chat(input_for_final_code_generation)
+        item['api_calls'] += 1
+        return self.parse_code(code), pr_tok, com_tok
+
+    def _improve_code(self, item: dict, planning: str, code: str, test_log: str, algorithm_prompt: str, iteration: int):
+        std_input_prompt = self._get_std_input_prompt()
+        response = f"## Planning: {planning}\n## Code:\n```\n{code}\n```"
+        
+        input_for_improving_code = [{
+            "role": "user",
+            "content": f"Given a competitive programming problem you have generated {self.language} code to solve the problem. But the generated code can not pass sample test cases. Improve your code to solve the problem correctly.\n{algorithm_prompt}\n## Problem to be solved:\n{self.data.get_prompt(item)}\n{response}\n## Test Report:\n{test_log}\n## Modified Planning:\n## Let's think step by step to modify {self.language} Code for solving this problem.\n\n----------------\nImportant:\n{std_input_prompt}\n## Your response must contain the modified planning and then the {self.language} code inside ``` block to solve this problem."
+        }]
+        
+        response, pr_tok, com_tok = self.gpt_chat(input_for_improving_code)
+        item['api_calls'] += 1
+        return self.parse_code(response), pr_tok, com_tok
+
+    # Helper methods
+    def _process_kb_response(self, response: str) -> dict:
+        # Post processing logic here...
+        response = self.trim_text(response, "# Identify the algorithm...")
+        response = self.trim_text(response, "# Write a useful tutorial...")
+        response = self.trim_text(response, "# Planning to solve this problem:")
+        response = self.trim_text(response, f"# Let's think step by step...")
         response = self.replace_tag(response, 'algorithm')
         response = self.replace_tag(response, 'description')
         response = self.replace_tag(response, 'code')
         response = self.replace_tag(response, 'planning')
+        return self.parse_xml(response)
 
-        print("\n\n________________________")
-        print("Response from knowledge base and exemplars: ")
-        print(response, flush=True)
+    def _process_example(self, example, example_no, item, algorithm_prompt, sample_io_prompt):
+        # Process single example and get planning
+        planning, pr_tok, com_tok = self._get_planning(
+            example["description"], 
+            example["planning"],
+            algorithm_prompt,
+            item,
+            sample_io_prompt
+        )
+        
+        # Verify planning
+        verification_res, pr_tok_1, com_tok_1 = self._verify_planning(item, planning)
+        verification_res = self._process_verification_response(verification_res)
+        
+        return planning, verification_res['confidence'], pr_tok + pr_tok_1, com_tok + com_tok_1
 
-        response = self.parse_xml(response)
+    def _get_std_input_prompt(self):
+        if type(self.data) in [APPSDataset, CodeContestDataset, XCodeDataset]:
+            return "## Note: Strictly follow the input and output format. The input should be taken from Standard input and output should be given to standard output. If you are writing a function then after the function definition take input using `input()` function then call the function with specified parameters and finally print the output of the function. Do not add extra print statement otherwise it will failed the test cases."
+        return ""
 
-        algorithm_prompt = f"## Relevant Algorithm to solve the next problem:\n{ response['algorithm']}"
-        sample_io_prompt = f"## Sample Test cases: \n{self.get_sample_io_str(item['sample_io'])}\n"
-        # if type(self.data) != MBPPDataset and type(self.data) != XCodeDataset else ""
-
-        plannings = []
-        for example_no, example in enumerate(response["problem"], start=1):
-            example_problem = example["description"]
-            example_planning = example["planning"]
-
-            input_for_problem_planning = [
-                {
-                    "role": "user",
-                    "content": f"Given a competitive programming problem generate a concrete planning to solve the problem.\n# Problem:\n{example_problem}\n# Planning:\n{example_planning}\n{algorithm_prompt}\n## Problem to be solved:\n{self.data.get_prompt(item)}\n{sample_io_prompt}\n## Planning:\n\n----------------\nImportant: You should give only the planning to solve the problem. Do not add extra explanation or words."
-                }
-            ]
-
-            print("\n\n________________________")
-            print(
-                f"Input for our problem planning using example: {example_no}: ")
-            print(input_for_problem_planning[0]['content'], flush=True)
-
-            planning, pr_tok_1, com_tok_1 = self.gpt_chat(
-                input_for_problem_planning
+    def _process_verification_response(self, response: str) -> dict:
+        # Post processing logic for verification response
+        response = self.trim_text(response, "Discuss whether...")
+        response = self.replace_tag(response, 'explanation')
+        response = self.replace_tag(response, 'confidence')
+        result = self.parse_xml(response)
+        
+        # Convert confidence to integer, default to 0 if parsing fails
+        try:
+            result['confidence'] = int(result['confidence'])
+        except (ValueError, KeyError, TypeError):
+            result['confidence'] = 0
+        
+        return result
+    def _try_improve_code(self, item: dict, planning: str, code: str, algorithm_prompt: str) -> tuple[str | None, int, int]:
+        total_pr_tok = 0
+        total_com_tok = 0
+        
+        # Test and improve code up to self.t times
+        for i in range(1, self.t + 1):
+            passed, test_log = self.data.evaluate(
+                item,
+                code,
+                self.language
             )
-            item['api_calls'] += 1
-            # time.sleep(1)
-            pr_tok += pr_tok_1
-            com_tok += com_tok_1
-
-            # planning = self.parse_xml(planning)
-            # planning['confidence'] = int(str(planning['confidence']).strip())
-
-            print("\n\n________________________")
-            print("Response from our problem planning: ")
-            print(planning, flush=True)
-
-            input_for_planning_verification = [
-                {
-                    "role": "user",
-                    "content": f"Given a competitive programming problem and a plan to solve the problem in {self.language}, tell whether the plan is correct to solve this problem.\n\n# Problem:\n{self.data.get_prompt(item)}\n# Planning:\n{planning}\n\n----------------\nImportant: Your response must follow the following xml format-```\n<root>\n<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>\n<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>\n</root>\n```"
-                }
-            ]
-
-            print("Input for planning verification: ")
-            print(input_for_planning_verification[0]['content'], flush=True)
-
-            verification_res, pr_tok_1, com_tok_1 = self.gpt_chat(
-                input_for_planning_verification
-            )
-            item['api_calls'] += 1
-            # time.sleep(1)
-            pr_tok += pr_tok_1
-            com_tok += com_tok_1
-
-            verification_res = self.replace_tag(
-                verification_res, 'explanation')
-            verification_res = self.replace_tag(verification_res, 'confidence')
-
-            verification_res = self.parse_xml(verification_res)
-
-            verification_res['confidence'] = int(
-                str(verification_res['confidence']).strip())
-
-            print("Response from planning verification: ")
-            print(verification_res, flush=True)
-
-            plannings.append((
-                planning,
-                verification_res['confidence'],
-                example
-            ))
-
-            # if type(self.data) == MBPPDataset and verification_res['confidence'] == 100:
-            #     break
-
-        plannings.sort(key=lambda x: x[1], reverse=True)
-        # time.sleep(1)
-
-        if type(self.data) == APPSDataset or type(self.data) == CodeContestDataset or type(self.data) == XCodeDataset:
-            std_input_prompt = "## Note: Strictly follow the input and output format. The input should be taken from Standard input and output should be given to standard output. If you are writing a function then after the function definition take input using `input()` function then call the function with specified parameters and finally print the output of the function. Do not add extra print statement otherwise it will failed the test cases."
-        else:
-            std_input_prompt = ""
-
-        for planning_with_ex in plannings:
-            planning, confidence, example = planning_with_ex
-
-            input_for_final_code_generation = [
-                {
-                    "role": "user",
-                    "content": f"Given a competitive programming problem generate {self.language} code to solve the problem.\n{algorithm_prompt}\n## Problem to be solved:\n{self.data.get_prompt(item)}\n## Planning:\n{planning}\n{sample_io_prompt}\n## Let's think step by step.\n\n----------------\nImportant:\n{std_input_prompt}\n## Your response must contain only the {self.language} code to solve this problem. Do not add extra explanation or words."
-                }
-            ]
-
-            print("\n\n________________________")
-            print("Input for final code generation: ")
-            print(input_for_final_code_generation[0]['content'], flush=True)
-
-            code, pr_tok_1, com_tok_1 = self.gpt_chat(
-                input_for_final_code_generation
-            )
-            item['api_calls'] += 1
-            # time.sleep(1)
-
-            code = self.parse_code(code)
-            pr_tok += pr_tok_1
-            com_tok += com_tok_1
-
-            print("\n\n________________________")
-            print("Response from final code generation: ")
-            print(code, flush=True)
-
-            response = f"## Planning: {planning}\n## Code:\n```\n{code}\n```"
-            passed = False
-
-            for i in range(1, self.t + 1):
-                passed, test_log = self.data.evaluate_sample_io(
-                    item,
-                    code,
-                    self.language
-                )
-
-                if passed:
-                    break
-
-                print(f"Input for improving code generation: {i}")
-                input_for_improving_code = [
-                    {
-                        "role": "user",
-                        "content": f"Given a competitive programming problem you have generated {self.language} code to solve the problem. But the generated code can not pass sample test cases. Improve your code to solve the problem correctly.\n{algorithm_prompt}\n## Problem to be solved:\n{self.data.get_prompt(item)}\n{response}\n## Test Report:\n{test_log}\n## Modified Planning:\n## Let's think step by step to modify {self.language} Code for solving this problem.\n\n----------------\nImportant:\n{std_input_prompt}\n## Your response must contain the modified planning and then the {self.language} code inside ``` block to solve this problem."
-                    }
-                ]
-
-                print("\n\n________________________")
-                print("Input for improving code generation: ")
-                print(input_for_improving_code[0]['content'], flush=True)
-
-                response, pr_tok_1, com_tok_1 = self.gpt_chat(
-                    input_for_improving_code
-                )
-                item['api_calls'] += 1
-                # time.sleep(1)
-
-                code = self.parse_code(response)
-                pr_tok += pr_tok_1
-                com_tok += com_tok_1
-
-                print("\n\n________________________")
-                print("Response from improving code generation: ")
-                print(response, flush=True)
-
-            # got a code that passed all sample test cases
+            
             if passed:
-                break
-
-        print("________________________\n\n", flush=True)
-        return code, pr_tok, com_tok
+                return code, total_pr_tok, total_com_tok
+                
+            # If not passed, try to improve the code
+            code, pr_tok, com_tok = self._improve_code(
+                item, 
+                planning, 
+                code, 
+                test_log, 
+                algorithm_prompt,
+                i
+            )
+            total_pr_tok += pr_tok
+            total_com_tok += com_tok
+            
+        # If we got here, this planning didn't work after t attempts
+        return None, total_pr_tok, total_com_tok

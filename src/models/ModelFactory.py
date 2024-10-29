@@ -1,8 +1,8 @@
 from models.Gemini import Gemini
 from models.OpenAI import ChatGPT
 from models.OpenAI import GPT4
-
-
+from models.OpenAI import GPT4o
+from models.OpenAI import VLLM
 class ModelFactory:
     @staticmethod
     def get_model_class(model_name):
@@ -12,5 +12,7 @@ class ModelFactory:
             return ChatGPT
         elif model_name == "GPT4":
             return GPT4
+        elif model_name == "GPT4o":
+            return GPT4o
         else:
-            raise Exception(f"Unknown model name {model_name}")
+            return VLLM

@@ -206,3 +206,12 @@ class ChatGPT(OpenAIModel):
     def prompt(self, processed_input: list[dict]):
         self.model_params["model"] = "GPT-35-TURBO-1106"
         return super().prompt(processed_input)
+    
+class GPT4o(OpenAIModel):
+    def prompt(self, processed_input: list[dict]):
+        self.model_params["model"] = "gpt-4o-mini"
+        return super().prompt(processed_input)
+    
+class VLLM(OpenAIModel):
+    def prompt(self, processed_input: list[dict]):
+        return super().prompt(processed_input)

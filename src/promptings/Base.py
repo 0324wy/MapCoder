@@ -131,3 +131,5 @@ class BaseStrategy(object):
                     f'completed {i+1}/{num_items}, Solved: {self.results[i]["is_solved"]}, number of success = {num_success}/{i+1}, acc = {round(num_success/(i+1)*100, 2)}')
 
             # break
+
+# nohup python3 src/main.py --model GPT4o --dataset MBPP --strategy MapCoder > test_1.log 2>&1 &

@@ -43,11 +43,12 @@ parser.add_argument(
     "--model", 
     type=str, 
     default="ChatGPT", 
-    choices=[
-        "ChatGPT",
-        "GPT4",
-        "Gemini",
-    ]
+    # choices=[
+    #     "ChatGPT",
+    #     "GPT4",
+    #     "GPT4o",
+    #     "Gemini",
+    # ]
 )
 parser.add_argument(
     "--temperature", 
@@ -74,6 +75,16 @@ parser.add_argument(
         "Rust",
     ]
 )
+parser.add_argument(
+    "--api_key", 
+    type=str, 
+    default=None,
+)
+parser.add_argument(
+    "--api_base", 
+    type=str, 
+    default=None,
+)
 
 args = parser.parse_args()
 
@@ -83,6 +94,8 @@ MODEL_NAME = args.model
 TEMPERATURE = args.temperature
 PASS_AT_K = args.pass_at_k
 LANGUAGE = args.language
+API_KEY = args.api_key
+API_BASE = args.api_base
 
 RUN_NAME = f"{MODEL_NAME}-{STRATEGY}-{DATASET}-{LANGUAGE}-{TEMPERATURE}-{PASS_AT_K}"
 RESULTS_PATH = f"./outputs/{RUN_NAME}.jsonl"
@@ -90,7 +103,11 @@ RESULTS_PATH = f"./outputs/{RUN_NAME}.jsonl"
 print(f"#########################\nRunning start {RUN_NAME}, Time: {datetime.now()}\n##########################\n")
 
 strategy = PromptingFactory.get_prompting_class(STRATEGY)(
-    model=ModelFactory.get_model_class(MODEL_NAME)(temperature=TEMPERATURE),
+    model=ModelFactory.get_model_class(MODEL_NAME)(
+        temperature=TEMPERATURE,
+        api_key=API_KEY,
+        api_base=API_BASE
+    ),
     data=DatasetFactory.get_dataset_class(DATASET)(),
     language=LANGUAGE,
     pass_at_k=PASS_AT_K,
