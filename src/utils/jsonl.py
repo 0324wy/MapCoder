@@ -1,4 +1,5 @@
 import json
+import os
 
 # Read an jsonl file and convert it into a python list of dictionaries.
 def read_jsonl(filename):
@@ -12,6 +13,10 @@ def read_jsonl(filename):
 # Write a python list of dictionaries into a jsonl file
 def write_jsonl(filename, lines):
     """Writes a python list of dictionaries into a jsonl file"""
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    
+    # Write data to the file
     with open(filename, "w", encoding="utf-8") as file:
         for line in lines:
             file.write(json.dumps(line) + "\n")
