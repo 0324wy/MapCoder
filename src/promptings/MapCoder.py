@@ -148,6 +148,31 @@ class MapCoder(BaseStrategy):
         return text.replace(trimmed_text, '').strip()
 
     @staticmethod
+    def ensure_xml_structure(response: str) -> str:
+        expected_structure = [
+            "<root>",
+            "<problem>",
+            "<description>",
+            "</description>",
+            "<code>",
+            "</code>",
+            "<planning>",
+            "</planning>",
+            "</problem>",
+            "<algorithm>",
+            "</algorithm>",
+            "</root>"
+        ]
+        # Add missing tags in the correct order
+        for i, tag in enumerate(expected_structure):
+            if not re.search(re.escape(tag), response):
+                if tag.startswith("</"):
+                    response += f"\n{tag}"
+                else:
+                    response = f"{tag}\n" + response
+        return response
+    
+    @staticmethod
     def replace_tag(text: str, tag: str):
         if f'<{tag}><![CDATA[' in text and f']]></{tag}>' in text:
             return text 
@@ -228,6 +253,9 @@ Your response must follow the following xml format-
             response, "# Planning to solve this problem:")
         response = self.trim_text(
             response, f"# Let's think step by step to solve this problem in {self.language} programming language.")
+        
+        response = self.ensure_xml_structure(response)
+        
         response = self.replace_tag(response, 'algorithm')
         response = self.replace_tag(response, 'description')
         response = self.replace_tag(response, 'code')

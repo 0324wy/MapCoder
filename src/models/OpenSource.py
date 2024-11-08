@@ -189,18 +189,16 @@ class OpenSourceModel(OpenSourceBaseModel):
             Response from the openai python library
 
         """
-        self.model_params["max_tokens"] = 4096
+        # self.model_params["max_tokens"] = 4096
 
-        response = self.openai.completions.create(
-            prompt=processed_input[0]['content'],
-            model=self.model_params["model"]
+        response = self.openai.chat.completions.create(
+            messages=processed_input,
+            **self.model_params
         )
-
-        print(response)
         return response.choices[0].message.content, response.usage.prompt_tokens, response.usage.completion_tokens
 
     
 class Llama31_8B(OpenSourceModel):
     def prompt(self, processed_input: list[dict]):
-        self.model_params["model"] = "meta-llama/Llama-3.1-8B"
+        self.model_params["model"] = "meta-llama/Llama-3.1-8B-Instruct"
         return super().prompt(processed_input)

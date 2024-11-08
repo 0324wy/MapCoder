@@ -12,6 +12,13 @@ client = OpenAI(
     api_key=openai_api_key,
     base_url=openai_api_base,
 )
-completion = client.completions.create(model="meta-llama/Llama-3.1-8B",
-                                      prompt="San Francisco is a")
-print("Completion result:", completion)
+response = client.chat.completions.create(
+  model="meta-llama/Llama-3.1-8B-Instruct",
+  messages=[
+    {"role": "user", "content": "Classify this sentiment: vLLM is wonderful!"}
+  ],
+  extra_body={
+    "guided_choice": ["positive", "negative"]
+  }
+)
+print("Completion result:", response.choices[0].message.content, response.usage.prompt_tokens, response.usage.completion_tokens)

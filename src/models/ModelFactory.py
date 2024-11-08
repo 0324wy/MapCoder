@@ -13,7 +13,7 @@ class ModelFactory:
             return ChatGPT
         elif model_name == "GPT4":
             return GPT4
-        elif model_name == "Llama-3.1-8B":
+        elif model_name == "Llama-3.1-8B-Instruct":
             return Llama31_8B
         else:
             raise Exception(f"Unknown model name {model_name}")
