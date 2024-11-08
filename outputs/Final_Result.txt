@@ -1,0 +1,7 @@
+completed 1/1, Solved: True, number of success = 1/1, acc = 100.0
+completed 1/164, Solved: True, number of success = 1/1, acc = 100.0
+completed 2/164, Solved: True, number of success = 2/2, acc = 100.0
+completed 3/164, Solved: True, number of success = 3/3, acc = 100.0
+completed 4/164, Solved: True, number of success = 4/4, acc = 100.0
+completed 5/164, Solved: True, number of success = 5/5, acc = 100.0
+completed 6/164, Solved: True, number of success = 6/6, acc = 100.0

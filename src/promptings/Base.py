@@ -126,8 +126,14 @@ class BaseStrategy(object):
             else:
                 self.results.add_result(item)
 
-            if self.verbose:
-                print(
-                    f'completed {i+1}/{num_items}, Solved: {self.results[i]["is_solved"]}, number of success = {num_success}/{i+1}, acc = {round(num_success/(i+1)*100, 2)}')
+            # if self.verbose:
+            #     print(
+            #         f'completed {i+1}/{num_items}, Solved: {self.results[i]["is_solved"]}, number of success = {num_success}/{i+1}, acc = {round(num_success/(i+1)*100, 2)}')
 
+            if self.verbose:
+                with open('./outputs/Final_Result.txt', 'a') as f:
+                    print(
+                        f'completed {i+1}/{num_items}, Solved: {self.results[i]["is_solved"]}, number of success = {num_success}/{i+1}, acc = {round(num_success/(i+1)*100, 2)}',
+                        file=f
+                    )
             # break
