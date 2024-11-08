@@ -53,6 +53,7 @@ class OpenSourceBaseModel(BaseModel):
         api_base=None,
         api_version=None,
         api_key=None,
+        base_url=None,
         engine_name=None,
         model_name=None,
         temperature=0,
@@ -78,6 +79,7 @@ class OpenSourceBaseModel(BaseModel):
         api_base = api_base or openai_vars["api_base"] or azure_vars["api_base"]
         api_version = api_version or openai_vars["api_version"] or azure_vars["api_version"]
         api_key = api_key or openai_vars["api_key"] or azure_vars["api_key"]
+        base_url = base_url or openai_vars["base_url"] or azure_vars["base_url"]
         model_name = model_name or engine_name or openai_vars["model"] or azure_vars["model"]
 
         # assert model_name is not None, "Model/Engine must be provided as model config or environment variable `OPENAI_MODEL`/`AZURE_ENGINE_NAME`"
@@ -95,7 +97,7 @@ class OpenSourceBaseModel(BaseModel):
                 azure_endpoint=api_base
             )
         else:
-            self.openai = OpenAI(api_key=api_key)
+            self.openai = OpenAI(api_key=api_key, base_url=base_url)
         
         # GPT parameters
         self.model_params = {}
@@ -122,6 +124,7 @@ class OpenSourceBaseModel(BaseModel):
             "api_version": os.getenv("OPENAI_API_VERSION"),
             "api_base": os.getenv("OPENAI_API_BASE"),
             "api_key": os.getenv("OPENAI_API_KEY"),
+            "base_url": os.getenv("OPENAI_API_URL"),
             "model": os.getenv("OPENAI_MODEL"),
         }
 
@@ -188,11 +191,12 @@ class OpenSourceModel(OpenSourceBaseModel):
         """
         self.model_params["max_tokens"] = 4096
 
-        response = self.openai.chat.completions.create(
-            messages=processed_input,
-            **self.model_params
+        response = self.openai.completions.create(
+            prompt=processed_input[0]['content'],
+            model=self.model_params["model"]
         )
 
+        print(response)
         return response.choices[0].message.content, response.usage.prompt_tokens, response.usage.completion_tokens
 
     
