@@ -1,7 +1,7 @@
 from models.Gemini import Gemini
 from models.OpenAI import ChatGPT
 from models.OpenAI import GPT4
-from models.OpenSource import Llama31_8B
+from models.OpenSource import Llama31_8B, Llama31_70B
 
 
 class ModelFactory:
@@ -15,5 +15,7 @@ class ModelFactory:
             return GPT4
         elif model_name == "Llama-3.1-8B-Instruct":
             return Llama31_8B
+        elif model_name == "Llama-3.1-70B-Instruct":
+            return Llama31_70B
         else:
             raise Exception(f"Unknown model name {model_name}")

@@ -202,3 +202,8 @@ class Llama31_8B(OpenSourceModel):
     def prompt(self, processed_input: list[dict]):
         self.model_params["model"] = "meta-llama/Llama-3.1-8B-Instruct"
         return super().prompt(processed_input)
+    
+class Llama31_70B(OpenSourceModel):
+    def prompt(self, processed_input: list[dict]):
+        self.model_params["model"] = "meta-llama/Llama-3.1-70B-Instruct"
+        return super().prompt(processed_input)

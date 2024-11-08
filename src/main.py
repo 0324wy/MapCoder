@@ -47,7 +47,8 @@ parser.add_argument(
         "ChatGPT",
         "GPT4",
         "Gemini",
-        "Llama-3.1-8B-Instruct"
+        "Llama-3.1-8B-Instruct",
+        "Llama-3.1-70B-Instruct"
     ]
 )
 parser.add_argument(
