@@ -86,30 +86,27 @@ class BaseStrategy(object):
             while cur_pass < self.pass_at_k and not is_solved:
                 try:
                     response, prompt_tokens, completion_tokens = self.run_single_pass(item)
+                    if hasattr(self, "parse_code"):
+                        cur_imp = self.parse_code(response)
+                    else:
+                        cur_imp = parse_response(response)
+                        # cur_imp = parse_response(response, item.get("entry_point", None))
+
+                    item["source_codes"].append(cur_imp)
+                    item["responses"].append(response)
+                    item["prompt_tokens"].append(prompt_tokens)
+                    item["completion_tokens"].append(completion_tokens)
+                    item["no_of_try"] += 1
+
+                    is_solved = self.data.evaluate(
+                        item=item,
+                        cur_imp=cur_imp,
+                        language=self.language
+                    )
                 except Exception as e:
                     print(f"An error occurred: {e}")
                 finally:
                     cur_pass += 1
-
-                if hasattr(self, "parse_code"):
-                    cur_imp = self.parse_code(response)
-                else:
-                    cur_imp = parse_response(response)
-                    # cur_imp = parse_response(response, item.get("entry_point", None))
-
-                item["source_codes"].append(cur_imp)
-                item["responses"].append(response)
-                item["prompt_tokens"].append(prompt_tokens)
-                item["completion_tokens"].append(completion_tokens)
-                item["no_of_try"] += 1
-
-                is_solved = self.data.evaluate(
-                    item=item,
-                    cur_imp=cur_imp,
-                    language=self.language
-                )
-
-                cur_pass += 1
 
             if is_solved:
                 num_success += 1
@@ -124,14 +121,9 @@ class BaseStrategy(object):
             else:
                 self.results.add_result(item)
 
-            # if self.verbose:
-            #     print(
-            #         f'completed {i+1}/{num_items}, Solved: {self.results[i]["is_solved"]}, number of success = {num_success}/{i+1}, acc = {round(num_success/(i+1)*100, 2)}')
-
             if self.verbose:
                 with open('./outputs/Final_Result.txt', 'a') as f:
                     print(
                         f'completed {i+1}/{num_items}, Solved: {self.results[i]["is_solved"]}, number of success = {num_success}/{i+1}, acc = {round(num_success/(i+1)*100, 2)}',
                         file=f
                     )
-            # break

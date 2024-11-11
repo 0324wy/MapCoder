@@ -1,1 +1,1 @@
-python3 src/main.py --model Llama-3.1-8B-Instruct
+python3 src/main.py --model Llama-3.1-8B-Instruct > main.log 2>&1 &

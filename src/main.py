@@ -91,6 +91,9 @@ RESULTS_PATH = f"./outputs/{RUN_NAME}.jsonl"
 
 print(f"#########################\nRunning start {RUN_NAME}, Time: {datetime.now()}\n##########################\n")
 
+with open('./outputs/Final_Result.txt', 'a') as f:
+    print(f"#########################\nRunning start {RUN_NAME}, Time: {datetime.now()}\n##########################\n", file=f)
+
 strategy = PromptingFactory.get_prompting_class(STRATEGY)(
     model=ModelFactory.get_model_class(MODEL_NAME)(temperature=TEMPERATURE),
     data=DatasetFactory.get_dataset_class(DATASET)(),
@@ -102,4 +105,9 @@ strategy = PromptingFactory.get_prompting_class(STRATEGY)(
 strategy.run()
 
 print(f"#########################\nRunning end {RUN_NAME}, Time: {datetime.now()}\n##########################\n")
+
+with open('./outputs/Final_Result.txt', 'a') as f:
+    print(f"#########################\nRunning end {RUN_NAME}, Time: {datetime.now()}\n##########################\n", file=f)
+        
+
 
