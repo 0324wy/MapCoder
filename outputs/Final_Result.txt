@@ -1,9 +1,62 @@
 #########################
-Running start Llama-3.1-8B-Instruct-MapCoder-HumanEval-Python3-0-1, Time: 2024-11-11 15:10:56.034877
+Running start Llama-3.1-8B-Instruct-MapCoder-HumanEval-Python3-0-1, Time: 2024-11-11 21:57:01.604692
 ##########################
 
-completed 1/164, Solved: True, number of success = 1/1, acc = 100.0
-completed 2/164, Solved: True, number of success = 2/2, acc = 100.0
-completed 3/164, Solved: True, number of success = 3/3, acc = 100.0
-completed 4/164, Solved: True, number of success = 4/4, acc = 100.0
-completed 5/164, Solved: True, number of success = 5/5, acc = 100.0
+completed 1/50, Solved: True, number of success = 1/1, acc = 100.0
+completed 2/50, Solved: True, number of success = 2/2, acc = 100.0
+completed 3/50, Solved: True, number of success = 3/3, acc = 100.0
+completed 4/50, Solved: True, number of success = 4/4, acc = 100.0
+completed 5/50, Solved: True, number of success = 5/5, acc = 100.0
+completed 6/50, Solved: True, number of success = 6/6, acc = 100.0
+completed 7/50, Solved: True, number of success = 7/7, acc = 100.0
+completed 8/50, Solved: True, number of success = 8/8, acc = 100.0
+completed 9/50, Solved: True, number of success = 9/9, acc = 100.0
+completed 10/50, Solved: True, number of success = 10/10, acc = 100.0
+completed 11/50, Solved: False, number of success = 10/11, acc = 90.91
+completed 12/50, Solved: True, number of success = 11/12, acc = 91.67
+completed 13/50, Solved: True, number of success = 12/13, acc = 92.31
+completed 14/50, Solved: True, number of success = 13/14, acc = 92.86
+completed 15/50, Solved: True, number of success = 14/15, acc = 93.33
+completed 16/50, Solved: True, number of success = 15/16, acc = 93.75
+completed 17/50, Solved: False, number of success = 15/17, acc = 88.24
+completed 18/50, Solved: True, number of success = 16/18, acc = 88.89
+completed 19/50, Solved: True, number of success = 17/19, acc = 89.47
+completed 20/50, Solved: True, number of success = 18/20, acc = 90.0
+completed 21/50, Solved: True, number of success = 19/21, acc = 90.48
+completed 22/50, Solved: True, number of success = 20/22, acc = 90.91
+completed 23/50, Solved: True, number of success = 21/23, acc = 91.3
+completed 24/50, Solved: False, number of success = 21/24, acc = 87.5
+completed 25/50, Solved: True, number of success = 22/25, acc = 88.0
+completed 26/50, Solved: True, number of success = 23/26, acc = 88.46
+completed 27/50, Solved: True, number of success = 24/27, acc = 88.89
+completed 28/50, Solved: False, number of success = 24/28, acc = 85.71
+completed 29/50, Solved: False, number of success = 24/29, acc = 82.76
+completed 30/50, Solved: True, number of success = 25/30, acc = 83.33
+completed 31/50, Solved: False, number of success = 25/31, acc = 80.65
+completed 32/50, Solved: False, number of success = 25/32, acc = 78.12
+completed 33/50, Solved: True, number of success = 26/33, acc = 78.79
+completed 34/50, Solved: False, number of success = 26/34, acc = 76.47
+completed 35/50, Solved: True, number of success = 27/35, acc = 77.14
+completed 36/50, Solved: True, number of success = 28/36, acc = 77.78
+completed 37/50, Solved: True, number of success = 29/37, acc = 78.38
+completed 38/50, Solved: True, number of success = 30/38, acc = 78.95
+completed 39/50, Solved: True, number of success = 31/39, acc = 79.49
+completed 40/50, Solved: False, number of success = 31/40, acc = 77.5
+completed 41/50, Solved: False, number of success = 31/41, acc = 75.61
+completed 42/50, Solved: True, number of success = 32/42, acc = 76.19
+completed 43/50, Solved: True, number of success = 33/43, acc = 76.74
+completed 44/50, Solved: True, number of success = 34/44, acc = 77.27
+completed 45/50, Solved: True, number of success = 35/45, acc = 77.78
+completed 46/50, Solved: True, number of success = 36/46, acc = 78.26
+completed 47/50, Solved: True, number of success = 37/47, acc = 78.72
+completed 48/50, Solved: False, number of success = 37/48, acc = 77.08
+completed 49/50, Solved: False, number of success = 37/49, acc = 75.51
+completed 50/50, Solved: True, number of success = 38/50, acc = 76.0
+#########################
+Running end Llama-3.1-8B-Instruct-MapCoder-HumanEval-Python3-0-1, Time: 2024-11-12 00:52:24.854648
+##########################
+
+#########################
+Running start Llama-3.1-8B-Instruct-MapCoder-HumanEval-Python3-0-1, Time: 2024-11-12 00:58:23.947918
+##########################
+
