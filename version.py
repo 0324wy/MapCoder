@@ -11,6 +11,7 @@ openai_api_base = "http://localhost:8000/v1"
 client = OpenAI(
     api_key=openai_api_key,
     base_url=openai_api_base,
+    timeout=2.0
 )
 response = client.chat.completions.create(
   model="meta-llama/Llama-3.1-8B-Instruct",

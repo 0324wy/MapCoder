@@ -97,7 +97,7 @@ class OpenSourceBaseModel(BaseModel):
                 azure_endpoint=api_base
             )
         else:
-            self.openai = OpenAI(api_key=api_key, base_url=base_url)
+            self.openai = OpenAI(api_key=api_key, base_url=base_url, timeout=60*5)
         
         # GPT parameters
         self.model_params = {}
