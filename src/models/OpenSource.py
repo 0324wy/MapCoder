@@ -189,7 +189,7 @@ class OpenSourceModel(OpenSourceBaseModel):
             Response from the openai python library
 
         """
-        # self.model_params["max_tokens"] = 4096
+        self.model_params["max_tokens"] = 4096
 
         response = self.openai.chat.completions.create(
             messages=processed_input,

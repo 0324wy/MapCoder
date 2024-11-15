@@ -12,6 +12,12 @@ from datasets.DatasetFactory import DatasetFactory
 from models.ModelFactory import ModelFactory
 
 import argparse
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+# Specify the Eastern Time zone
+timezone = ZoneInfo('America/New_York')
+
 
 parser = argparse.ArgumentParser()
 
@@ -92,7 +98,12 @@ RESULTS_PATH = f"./outputs/{RUN_NAME}.jsonl"
 print(f"#########################\nRunning start {RUN_NAME}, Time: {datetime.now()}\n##########################\n")
 
 with open('./outputs/Final_Result.txt', 'a') as f:
-    print(f"#########################\nRunning start {RUN_NAME}, Time: {datetime.now()}\n##########################\n", file=f)
+    print(
+        f"#########################\n"
+        f"Running start {RUN_NAME}, Time: {datetime.now(timezone)}\n"
+        f"##########################\n", 
+        file=f
+    )
 
 strategy = PromptingFactory.get_prompting_class(STRATEGY)(
     model=ModelFactory.get_model_class(MODEL_NAME)(temperature=TEMPERATURE),
@@ -106,8 +117,12 @@ strategy.run()
 
 print(f"#########################\nRunning end {RUN_NAME}, Time: {datetime.now()}\n##########################\n")
 
-with open('./outputs/Final_Result.txt', 'a') as f:
-    print(f"#########################\nRunning end {RUN_NAME}, Time: {datetime.now()}\n##########################\n", file=f)
-        
 
+with open('./outputs/Final_Result.txt', 'a') as f:
+    print(
+        f"#########################\n"
+        f"Running end {RUN_NAME}, Time: {datetime.now(timezone)}\n"
+        f"##########################\n", 
+        file=f
+    )
 

@@ -11,12 +11,12 @@ openai_api_base = "http://localhost:8000/v1"
 client = OpenAI(
     api_key=openai_api_key,
     base_url=openai_api_base,
-    timeout=2.0
+    timeout=5.0
 )
 response = client.chat.completions.create(
   model="meta-llama/Llama-3.1-8B-Instruct",
   messages=[
-    {"role": "user", "content": "Classify this sentiment: vLLM is wonderful!"}
+    {"role": "user", "content": "Classify this sentiment: Yan is wonderful!"}
   ],
   extra_body={
     "guided_choice": ["positive", "negative"]
