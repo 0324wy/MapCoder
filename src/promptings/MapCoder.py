@@ -81,6 +81,7 @@ class MapCoder(BaseStrategy):
         return self.xml_to_dict(root)
 
     def parse_code(self, response: str) -> str:
+        print("===============response=============", response, "\n")
         if "```" not in response:
             return response
 
@@ -171,6 +172,23 @@ class MapCoder(BaseStrategy):
                 else:
                     response = f"{tag}\n" + response
         return response
+    
+    @staticmethod
+    def is_code_blocks_closed(text: str) -> str:
+        """
+        Ensures that all code blocks in the input text are properly closed with triple backticks.
+        If a code block is opened but not closed, this function will return false.
+        """
+        lines = text.splitlines()
+        in_code_block = False
+
+        for line in lines:
+            if line.strip().startswith('```') and not in_code_block:
+                in_code_block = True
+            elif line.strip().startswith('```') and in_code_block:
+                in_code_block = False
+        print("============is_code_blocks_closed=============", not in_code_block)
+        return not in_code_block
     
     @staticmethod
     def replace_tag(text: str, tag: str):
@@ -382,6 +400,7 @@ Your response must follow the following xml format-
             passed = False
 
             for i in range(1, self.t + 1):
+                print(f"Evaluate code generation: {i}")
                 passed, test_log = self.data.evaluate_sample_io(
                     item,
                     code,
@@ -408,8 +427,13 @@ Your response must follow the following xml format-
                 )
                 item['api_calls'] += 1
                 # time.sleep(1)
-
-                code = self.parse_code(response)
+                
+                # Ensure code block is closed
+                if self.is_code_blocks_closed(response):
+                    code = self.parse_code(response)
+                else:
+                    code = response
+                    
                 pr_tok += pr_tok_1
                 com_tok += com_tok_1
 
