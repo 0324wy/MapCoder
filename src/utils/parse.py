@@ -1,9 +1,12 @@
 import re
+import multiprocessing
 
 """
 Retriving the code blocks from the response.
 """
 def parse_response(response: str) -> str:
+    print("===============response in parse response=============", response, "\n")
+
     if "```" not in response:
         return response
 
@@ -59,8 +62,31 @@ def parse_response(response: str) -> str:
     if "```csharp" in response:
         code_pattern = r'```csharp((.|\n)*?)```'
 
-    code_blocks = re.findall(code_pattern, response, re.DOTALL)
+    # Wrap the re.findall call using multiprocessing
+    def find_code_blocks(queue):
+        result = re.findall(code_pattern, response, re.DOTALL)
+        queue.put(result)
 
+    default_value = response
+    queue = multiprocessing.Queue()
+    process = multiprocessing.Process(target=find_code_blocks, args=(queue,))
+    process.start()
+    process.join(timeout=30)  # Wait for up to 10 seconds
+
+    if process.is_alive():
+        process.terminate()
+        process.join()
+        print("============multiprocessing time out error in parse_response==============")
+        return default_value  # Return default value if timeout occurs
+    else:
+        if not queue.empty():
+            code_blocks = queue.get()
+        else:
+            return default_value
+    
+    if not code_blocks:
+        return response
+    
     if type(code_blocks[-1]) == tuple or type(code_blocks[-1]) == list:
         code_str = "\n".join(code_blocks[-1])
     elif type(code_blocks[-1]) == str:

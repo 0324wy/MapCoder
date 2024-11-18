@@ -81,7 +81,7 @@ class MapCoder(BaseStrategy):
                 root = ET.fromstring('<root>\n' + response)
         return self.xml_to_dict(root)
     
-    def parse_code_(self, response: str) -> str:
+    def parse_code(self, response: str) -> str:
         print("===============response=============", response, "\n")
         if "```" not in response:
             return response
@@ -412,7 +412,7 @@ Your response must follow the following xml format-
             item['api_calls'] += 1
             # time.sleep(1)
 
-            code = self.parse_code_(code)
+            code = self.parse_code(code)
             pr_tok += pr_tok_1
             com_tok += com_tok_1
 
@@ -453,7 +453,7 @@ Your response must follow the following xml format-
                 # time.sleep(1)
                 
                 # Ensure code block is closed
-                code = self.parse_code_(response)
+                code = self.parse_code(response)
 
                 pr_tok += pr_tok_1
                 com_tok += com_tok_1
