@@ -5,6 +5,7 @@ print(torch.cuda.get_device_name(0))  # Check the name of the first GPU
 
 from openai import OpenAI
 import re
+import concurrent.futures  # Added import
 
 # Modify OpenAI's API key and API base to use vLLM's API server.
 openai_api_key = "EMPTY"
@@ -82,7 +83,7 @@ import random
 test_encode_cyclic()
 test_decode_cyclic()
 test_encode_decode()
-```
+
 
 However, the above code still has issues with the decode_cyclic function. The issue is that the decode_cyclic function is not correctly reversing the groups of three characters.
 
@@ -340,8 +341,7 @@ def decode_cyclic(s: str):
     takes as input string encoded with encode_cyclic function. Returns decoded string.
     """
     groups = [s[(3 * i):min((3 * i + 3), len(s))] for i in range((len(s) + 2) // 3)]
-    groups = [group
-    
+    groups = [group    
 ## Modified planning:
 ## Modified Code:
 ## Modified Code:
@@ -656,8 +656,7 @@ def decode_cyclic(s: str):
 ## Modified Planning:
 
 ## Modified
-```
- 
+``` 
 '''
 
 # input_for_improving_code = [
@@ -727,7 +726,22 @@ def parse_code(response: str) -> str:
     if "```csharp" in response:
         code_pattern = r'```csharp((.|\n)*?)```'
 
-    code_blocks = re.findall(code_pattern, response, re.DOTALL)
+    # code_blocks = re.findall(code_pattern, response, re.DOTALL)
+    
+    # Wrap the re.findall call
+    def find_code_blocks():
+        return re.findall(code_pattern, response, re.DOTALL)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(find_code_blocks)
+        try:
+            code_blocks = future.result(timeout=5)  # Wait for up to 10 seconds
+        except concurrent.futures.TimeoutError:
+            print("============concurrent time out error==============")
+            return response  # Return default value if timeout occurs
+
+    if not code_blocks:
+        return response
 
     if type(code_blocks[-1]) == tuple or type(code_blocks[-1]) == list:
         code_str = "\n".join(code_blocks[-1])
@@ -742,11 +756,14 @@ def parse_code_(response: str) -> str:
     if "```" not in response:
         return response
 
-    code_pattern = r'```(?:[a-zA-Z0-9#\+\-]*)\n((?:.|\n)*?)```'
+    code_pattern = r'```(?:[a-zA-Z0-9#\+\-]*)\n(.*?)```'
+
     code_blocks = re.findall(code_pattern, response, re.DOTALL)
 
-    if code_blocks:
-        code_str = "\n".join(code_blocks)
+    if type(code_blocks[-1]) == tuple or type(code_blocks[-1]) == list:
+        code_str = "\n".join(code_blocks[-1])
+    elif type(code_blocks[-1]) == str:
+        code_str = code_blocks[-1]
     else:
         code_str = response
 
@@ -759,6 +776,96 @@ def parse_code_(response: str) -> str:
 print("============code==============")
 # print(parse_code_(text))
 
+
+import re
+import multiprocessing  # Added import
+
+def parse_code2(response: str) -> str:
+    print("===============response=============", response, "\n")
+    if "```" not in response:
+        return response
+
+    code_pattern = r'```((.|\n)*?)```'
+    if "```Python" in response:
+        code_pattern = r'```Python((.|\n)*?)```'
+    if "```Python3" in response:
+        code_pattern = r'```Python3((.|\n)*?)```'
+    if "```python" in response:
+        code_pattern = r'```python((.|\n)*?)```'
+    if "```python3" in response:
+        code_pattern = r'```python3((.|\n)*?)```'
+    if "```C" in response:
+        code_pattern = r'```C((.|\n)*?)```'
+    if "```c" in response:
+        code_pattern = r'```c((.|\n)*?)```'
+    if "```C++" in response:
+        code_pattern = r'```C\+\+((.|\n)*?)```'
+    if "```c++" in response:
+        code_pattern = r'```c\+\+((.|\n)*?)```'
+    if "```Java" in response:
+        code_pattern = r'```Java((.|\n)*?)```'
+    if "```java" in response:
+        code_pattern = r'```java((.|\n)*?)```'
+    if "```Node" in response:
+        code_pattern = r'```Node((.|\n)*?)```'
+    if "```node" in response:
+        code_pattern = r'```node((.|\n)*?)```'
+    if "```Rust" in response:
+        code_pattern = r'```Rust((.|\n)*?)```'
+    if "```rust" in response:
+        code_pattern = r'```rust((.|\n)*?)```'
+    if "```PHP" in response:
+        code_pattern = r'```PHP((.|\n)*?)```'
+    if "```php" in response:
+        code_pattern = r'```php((.|\n)*?)```'
+    if "```Go" in response:
+        code_pattern = r'```Go((.|\n)*?)```'
+    if "```go" in response:
+        code_pattern = r'```go((.|\n)*?)```'
+    if "```Ruby" in response:
+        code_pattern = r'```Ruby((.|\n)*?)```'
+    if "```ruby" in response:
+        code_pattern = r'```ruby((.|\n)*?)```'
+    if "```C#" in response:
+        code_pattern = r'```C#((.|\n)*?)```'
+    if "```c#" in response:
+        code_pattern = r'```c#((.|\n)*?)```'
+    if "```csharp" in response:
+        code_pattern = r'```csharp((.|\n)*?)```'
+
+    # Wrap the re.findall call using multiprocessing
+    def find_code_blocks(queue):
+        result = re.findall(code_pattern, response, re.DOTALL)
+        queue.put(result)
+
+    default_value = response
+    queue = multiprocessing.Queue()
+    process = multiprocessing.Process(target=find_code_blocks, args=(queue,))
+    process.start()
+    process.join(timeout=5)  # Wait for up to 5 seconds
+
+    if process.is_alive():
+        process.terminate()
+        process.join()
+        print("============multiprocessing time out error==============")
+        return default_value  # Return default value if timeout occurs
+    else:
+        if not queue.empty():
+            code_blocks = queue.get()
+        else:
+            return default_value
+
+    if not code_blocks:
+        return response
+
+    if isinstance(code_blocks[-1], (tuple, list)):
+        code_str = "\n".join(code_blocks[-1])
+    elif isinstance(code_blocks[-1], str):
+        code_str = code_blocks[-1]
+    else:
+        code_str = response
+
+    return code_str
 
 
 def is_code_blocks_closed(text: str) -> str:
@@ -777,6 +884,6 @@ def is_code_blocks_closed(text: str) -> str:
             in_code_block = False
     return not in_code_block
   
-print(is_code_blocks_closed(text))
-print(parse_code(text))
-  
+# print(is_code_blocks_closed(text))
+# print(parse_code(text))
+print(parse_code2(text))

@@ -21,6 +21,7 @@ from datasets.CodeContestDataset import CodeContestDataset
 
 from results.Results import Results
 from evaluations.func_evaluate import evaluate_io
+import multiprocessing
 
 mapping = {
     1: "one (01)",
@@ -79,8 +80,8 @@ class MapCoder(BaseStrategy):
             except:
                 root = ET.fromstring('<root>\n' + response)
         return self.xml_to_dict(root)
-
-    def parse_code(self, response: str) -> str:
+    
+    def parse_code_(self, response: str) -> str:
         print("===============response=============", response, "\n")
         if "```" not in response:
             return response
@@ -133,7 +134,30 @@ class MapCoder(BaseStrategy):
         if "```csharp" in response:
             code_pattern = r'```csharp((.|\n)*?)```'
 
-        code_blocks = re.findall(code_pattern, response, re.DOTALL)
+        # Wrap the re.findall call using multiprocessing
+        def find_code_blocks(queue):
+            result = re.findall(code_pattern, response, re.DOTALL)
+            queue.put(result)
+
+        default_value = response
+        queue = multiprocessing.Queue()
+        process = multiprocessing.Process(target=find_code_blocks, args=(queue,))
+        process.start()
+        process.join(timeout=30)  # Wait for up to 10 seconds
+
+        if process.is_alive():
+            process.terminate()
+            process.join()
+            print("============multiprocessing time out error==============")
+            return default_value  # Return default value if timeout occurs
+        else:
+            if not queue.empty():
+                code_blocks = queue.get()
+            else:
+                return default_value
+        
+        if not code_blocks:
+            return response
 
         if type(code_blocks[-1]) == tuple or type(code_blocks[-1]) == list:
             code_str = "\n".join(code_blocks[-1])
@@ -388,7 +412,7 @@ Your response must follow the following xml format-
             item['api_calls'] += 1
             # time.sleep(1)
 
-            code = self.parse_code(code)
+            code = self.parse_code_(code)
             pr_tok += pr_tok_1
             com_tok += com_tok_1
 
@@ -429,11 +453,8 @@ Your response must follow the following xml format-
                 # time.sleep(1)
                 
                 # Ensure code block is closed
-                if self.is_code_blocks_closed(response):
-                    code = self.parse_code(response)
-                else:
-                    code = response
-                    
+                code = self.parse_code_(response)
+
                 pr_tok += pr_tok_1
                 com_tok += com_tok_1
 
