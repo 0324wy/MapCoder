@@ -12,7 +12,7 @@ class Dataset(object):
         self.load()
 
     def load(self):
-        self.data = read_jsonl(self.path)
+        self.data = read_jsonl(self.path)[83:]
 
     def __len__(self):
         return len(self.data)
